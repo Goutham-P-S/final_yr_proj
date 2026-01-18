@@ -1,0 +1,33 @@
+﻿# node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env
+.env
+.env.*
+!.env.example
+
+# build
+dist/
+build/
+.next/
+out/
+coverage/
+
+# logs
+logs/
+*.log
+
+# os
+.DS_Store
+Thumbs.db
+
+# sandbox generated stuff
+sandboxes/**/volumes/
+sandboxes/**/.env
+sandboxes/**/node_modules/
+sandboxes/**/.next/
+sandboxes/**/dist/
