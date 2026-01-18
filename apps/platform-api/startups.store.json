@@ -1,0 +1,38 @@
+[
+  {
+    "startupId": 2,
+    "slug": "pizza-shop",
+    "ports": {
+      "webPort": 3002,
+      "dbPort": 5434,
+      "n8nPort": 5680
+    },
+    "sandboxName": "startup-0002-pizza-shop",
+    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0002-pizza-shop",
+    "createdAt": "2026-01-18T13:35:28.946Z"
+  },
+  {
+    "startupId": 3,
+    "slug": "test-startup",
+    "ports": {
+      "webPort": 3003,
+      "dbPort": 5435,
+      "n8nPort": 5681
+    },
+    "sandboxName": "startup-0003-test-startup",
+    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0003-test-startup",
+    "createdAt": "2026-01-18T14:21:30.146Z"
+  },
+  {
+    "startupId": 4,
+    "slug": "auto-web-test",
+    "ports": {
+      "webPort": 3004,
+      "dbPort": 5436,
+      "n8nPort": 5682
+    },
+    "sandboxName": "startup-0004-auto-web-test",
+    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0004-auto-web-test",
+    "createdAt": "2026-01-18T14:29:33.959Z"
+  }
+]
