@@ -1,6 +1,10 @@
 ﻿import fs from "fs";
 import path from "path";
 import { SandboxPorts } from "./types";
+import { writeSandboxEnv } from "./envGenerator";
+import { writeWebEnv } from "./webEnvGenerator";
+import { buildComposeYml } from "./composeGenerator";
+
 
 export function slugify(input: string) {
   const s = input.trim().toLowerCase();
@@ -60,78 +64,27 @@ export function createSandboxFolder(params: {
 
   const webPath = path.join(sandboxPath, "web");
   fs.mkdirSync(webPath, { recursive: true });
+  writeWebEnv({
+    webPath,
+    dbUser: "startup",
+    dbPass: "startup",
+    dbName: "startupdb",
+  });
 
   fs.mkdirSync(path.join(sandboxPath, "volumes"), { recursive: true });
 
   // seed the web app so container doesn't crash
   seedWebApp(webPath);
 
-  const envContent =
-    "WEB_PORT=" + ports.webPort + "\n" +
-    "DB_PORT=" + ports.dbPort + "\n" +
-    "N8N_PORT=" + ports.n8nPort + "\n";
+  writeSandboxEnv({
+    sandboxPath,
+    webPort: ports.webPort,
+    dbPort: ports.dbPort,
+    n8nPort: ports.n8nPort,
+  });
 
-  fs.writeFileSync(path.join(sandboxPath, ".env"), envContent, "utf8");
-
-  const containerPrefix = "startup_" + idStr;
-
-  const composeContent = `services:
-  db:
-    image: postgres:16
-    container_name: ${containerPrefix}_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: startup
-      POSTGRES_PASSWORD: startup
-      POSTGRES_DB: startupdb
-    ports:
-      - "\${DB_PORT}:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    networks:
-      - startup_net
-
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: ${containerPrefix}_n8n
-    restart: unless-stopped
-    ports:
-      - "\${N8N_PORT}:5678"
-    environment:
-      - NODE_ENV=production
-      - GENERIC_TIMEZONE=Asia/Kolkata
-      - DB_TYPE=sqlite
-    volumes:
-      - n8n_data:/home/node/.n8n
-    networks:
-      - startup_net
-
-  web:
-    image: node:20-alpine
-    container_name: ${containerPrefix}_web
-    working_dir: /app
-    restart: unless-stopped
-    ports:
-      - "\${WEB_PORT}:3000"
-    environment:
-      - PORT=3000
-    volumes:
-      - ./web:/app
-    command: sh -c "npm install && npm run dev"
-    depends_on:
-      - db
-    networks:
-      - startup_net
-
-volumes:
-  db_data:
-  n8n_data:
-
-networks:
-  startup_net:
-    driver: bridge
-`;
-
+  const containerPrefix = `startup_${String(startupId).padStart(4, "0")}`;
+  const composeContent = buildComposeYml({ containerPrefix });
   fs.writeFileSync(path.join(sandboxPath, "docker-compose.yml"), composeContent, "utf8");
 
   return { sandboxName, sandboxPath };

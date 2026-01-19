@@ -8,10 +8,15 @@ import { StartupCreateRequest } from "./types";
 
 import { addStartup, listStartups, findStartupBySandboxName } from "./startupStore";
 import { dockerComposeUp, dockerComposeDown, dockerComposePs } from "./dockerRunner";
+import { buildStartupWorkflowTemplate } from "./n8n/workflowTemplate";
+import { n8nImportWorkflow } from "./n8n/n8nClient";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "platform-api" });
@@ -57,13 +62,33 @@ app.post("/startups", (req, res) => {
 });
 
 // Bring up docker compose for a startup
-app.post("/startups/:sandboxName/up", (req, res) => {
+app.post("/startups/:sandboxName/up",async (req, res) => {
   const sandboxName = req.params.sandboxName;
 
   const startup = findStartupBySandboxName(sandboxName);
   if (!startup) return res.status(404).json({ error: "startup not found" });
 
   dockerComposeUp(startup.sandboxPath);
+// after containers are up, import n8n workflow template
+  await sleep(4000);
+
+  try {
+    const workflow = buildStartupWorkflowTemplate({
+      startupId: startup.startupId,
+      sandboxName: startup.sandboxName,
+    });
+
+    await n8nImportWorkflow({
+      n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
+      username: "admin",
+      password: "admin123",
+      workflow,
+    });
+
+    console.log("✅ n8n template imported for", startup.sandboxName);
+  } catch (err) {
+    console.log("⚠️ n8n template import failed:", err);
+  }
 
   return res.json({
     ok: true,
@@ -72,7 +97,15 @@ app.post("/startups/:sandboxName/up", (req, res) => {
       web: "http://localhost:" + startup.ports.webPort,
       n8n: "http://localhost:" + startup.ports.n8nPort
     }
+
+
+
   });
+
+
+
+
+  
 });
 
 // Bring down docker compose for a startup
@@ -105,4 +138,29 @@ app.get("/startups/:sandboxName/status", (req, res) => {
 const PORT = 5050;
 app.listen(PORT, () => {
   console.log("platform-api running on http://localhost:" + PORT);
+});
+
+app.post("/startups/:sandboxName/n8n/template", async (req, res) => {
+  try {
+    const sandboxName = req.params.sandboxName;
+
+    const startup = startups.find((s) => s.sandboxName === sandboxName);
+    if (!startup) return res.status(404).json({ ok: false, error: "startup not found" });
+
+    const workflow = buildStartupWorkflowTemplate({
+      startupId: startup.startupId,
+      sandboxName: startup.sandboxName,
+    });
+
+    const imported = await n8nImportWorkflow({
+      n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
+      username: "admin",
+      password: "admin123",
+      workflow,
+    });
+
+    res.json({ ok: true, imported });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
 });
