@@ -13,6 +13,8 @@ export function writeSandboxEnv(params: {
 
   n8nUser?: string;
   n8nPass?: string;
+
+  n8nApiKey?: string;
 }) {
   const {
     sandboxPath,
@@ -26,6 +28,8 @@ export function writeSandboxEnv(params: {
 
     n8nUser = "admin",
     n8nPass = "admin123",
+
+    n8nApiKey = "dev-api-key-123",
   } = params;
 
   const envText =
@@ -38,10 +42,19 @@ POSTGRES_USER=${startupDbUser}
 POSTGRES_PASSWORD=${startupDbPass}
 POSTGRES_DB=${startupDbName}
 
-# n8n auth
+# n8n auth (UI)
 N8N_BASIC_AUTH_ACTIVE=true
 N8N_BASIC_AUTH_USER=${n8nUser}
 N8N_BASIC_AUTH_PASSWORD=${n8nPass}
+
+# disable owner setup
+N8N_USER_MANAGEMENT_DISABLED=true
+N8N_DIAGNOSTICS_ENABLED=false
+N8N_PERSONALIZATION_ENABLED=false
+
+# n8n REST API access
+N8N_API_KEY=${n8nApiKey}
+N8N_PUBLIC_API_DISABLED=false
 `;
 
   fs.writeFileSync(path.join(sandboxPath, ".env"), envText, "ascii");

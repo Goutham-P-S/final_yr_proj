@@ -1,86 +1,14 @@
 [
   {
-    "startupId": 2,
-    "slug": "pizza-shop",
+    "startupId": 16,
+    "slug": "apikey-n8n-test",
     "ports": {
-      "webPort": 3002,
-      "dbPort": 5434,
-      "n8nPort": 5680
+      "webPort": 3016,
+      "dbPort": 5448,
+      "n8nPort": 5694
     },
-    "sandboxName": "startup-0002-pizza-shop",
-    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0002-pizza-shop",
-    "createdAt": "2026-01-18T13:35:28.946Z"
-  },
-  {
-    "startupId": 3,
-    "slug": "test-startup",
-    "ports": {
-      "webPort": 3003,
-      "dbPort": 5435,
-      "n8nPort": 5681
-    },
-    "sandboxName": "startup-0003-test-startup",
-    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0003-test-startup",
-    "createdAt": "2026-01-18T14:21:30.146Z"
-  },
-  {
-    "startupId": 4,
-    "slug": "auto-web-test",
-    "ports": {
-      "webPort": 3004,
-      "dbPort": 5436,
-      "n8nPort": 5682
-    },
-    "sandboxName": "startup-0004-auto-web-test",
-    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0004-auto-web-test",
-    "createdAt": "2026-01-18T14:29:33.959Z"
-  },
-  {
-    "startupId": 5,
-    "slug": "env-generator-test",
-    "ports": {
-      "webPort": 3005,
-      "dbPort": 5437,
-      "n8nPort": 5683
-    },
-    "sandboxName": "startup-0005-env-generator-test",
-    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0005-env-generator-test",
-    "createdAt": "2026-01-18T17:44:09.572Z"
-  },
-  {
-    "startupId": 6,
-    "slug": "web-env-test",
-    "ports": {
-      "webPort": 3006,
-      "dbPort": 5438,
-      "n8nPort": 5684
-    },
-    "sandboxName": "startup-0006-web-env-test",
-    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0006-web-env-test",
-    "createdAt": "2026-01-19T05:37:29.043Z"
-  },
-  {
-    "startupId": 7,
-    "slug": "fresh-startup",
-    "ports": {
-      "webPort": 3007,
-      "dbPort": 5439,
-      "n8nPort": 5685
-    },
-    "sandboxName": "startup-0007-fresh-startup",
-    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0007-fresh-startup",
-    "createdAt": "2026-01-19T11:00:43.486Z"
-  },
-  {
-    "startupId": 8,
-    "slug": "compose-fix-test",
-    "ports": {
-      "webPort": 3008,
-      "dbPort": 5440,
-      "n8nPort": 5686
-    },
-    "sandboxName": "startup-0008-compose-fix-test",
-    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0008-compose-fix-test",
-    "createdAt": "2026-01-19T11:15:52.185Z"
+    "sandboxName": "startup-0016-apikey-n8n-test",
+    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0016-apikey-n8n-test",
+    "createdAt": "2026-01-20T02:17:52.785Z"
   }
 ]

@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16
-    container_name: startup_0008_db
+    container_name: startup_0016_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -16,7 +16,7 @@ services:
 
   n8n:
     image: n8nio/n8n:latest
-    container_name: startup_0008_n8n
+    container_name: startup_0016_n8n
     restart: unless-stopped
     ports:
       - "${N8N_PORT}:5678"
@@ -24,17 +24,30 @@ services:
       - NODE_ENV=production
       - GENERIC_TIMEZONE=Asia/Kolkata
       - DB_TYPE=sqlite
+
+      # Disable owner setup / user management
+      - N8N_USER_MANAGEMENT_DISABLED=${N8N_USER_MANAGEMENT_DISABLED}
+      - N8N_DIAGNOSTICS_ENABLED=${N8N_DIAGNOSTICS_ENABLED}
+      - N8N_PERSONALIZATION_ENABLED=${N8N_PERSONALIZATION_ENABLED}
+
+      # API key auth for REST
+      - N8N_API_KEY=${N8N_API_KEY}
+      - N8N_PUBLIC_API_DISABLED=${N8N_PUBLIC_API_DISABLED}
+
+      # Basic auth
       - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE}
       - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
       - startup_net
 
+
   web:
     image: node:20-alpine
-    container_name: startup_0008_web
+    container_name: startup_0016_web
     working_dir: /app
     restart: unless-stopped
     ports:

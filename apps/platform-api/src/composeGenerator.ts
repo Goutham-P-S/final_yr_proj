@@ -28,12 +28,26 @@
     ports:
       - "\${N8N_PORT}:5678"
     environment:
-      - NODE_ENV=production
-      - GENERIC_TIMEZONE=Asia/Kolkata
-      - DB_TYPE=sqlite
-      - N8N_BASIC_AUTH_ACTIVE=\${N8N_BASIC_AUTH_ACTIVE}
-      - N8N_BASIC_AUTH_USER=\${N8N_BASIC_AUTH_USER}
-      - N8N_BASIC_AUTH_PASSWORD=\${N8N_BASIC_AUTH_PASSWORD}
+    - NODE_ENV=production
+    - GENERIC_TIMEZONE=Asia/Kolkata
+    - DB_TYPE=sqlite
+
+    # ✅ Disable owner setup / user management
+    - N8N_USER_MANAGEMENT_DISABLED=\${N8N_USER_MANAGEMENT_DISABLED}
+    - N8N_DIAGNOSTICS_ENABLED=\${N8N_DIAGNOSTICS_ENABLED}
+    - N8N_PERSONALIZATION_ENABLED=\${N8N_PERSONALIZATION_ENABLED}
+
+    # ✅ API key auth for REST
+    - N8N_API_KEY=\${N8N_API_KEY}
+    - N8N_PUBLIC_API_DISABLED=\${N8N_PUBLIC_API_DISABLED}
+
+    # ✅ (Optional) keep basic auth too (UI protection)
+    - N8N_BASIC_AUTH_ACTIVE=\${N8N_BASIC_AUTH_ACTIVE}
+    - N8N_BASIC_AUTH_USER=\${N8N_BASIC_AUTH_USER}
+    - N8N_BASIC_AUTH_PASSWORD=\${N8N_BASIC_AUTH_PASSWORD}
+
+
+
     volumes:
       - n8n_data:/home/node/.n8n
     networks:

@@ -10,10 +10,31 @@ import { addStartup, listStartups, findStartupBySandboxName } from "./startupSto
 import { dockerComposeUp, dockerComposeDown, dockerComposePs } from "./dockerRunner";
 import { buildStartupWorkflowTemplate } from "./n8n/workflowTemplate";
 import { n8nImportWorkflow } from "./n8n/n8nClient";
+import { devResetAll } from "./devReset";
+import "dotenv/config";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.post("/dev/reset-all", (req, res) => {
+  // Layer 1: feature flag
+  if (process.env.ALLOW_DEV_RESET !== "true") {
+    return res.status(403).json({ ok: false, error: "dev reset is disabled" });
+  }
+
+  // Layer 2: token header
+  const token = req.headers["x-reset-token"];
+  const expected = process.env.DEV_RESET_TOKEN;
+
+  if (!expected || token !== expected) {
+    return res.status(401).json({ ok: false, error: "invalid reset token" });
+  }
+
+  const repoRoot = path.resolve(process.cwd(), "..", "..");
+  const result = devResetAll({ repoRoot });
+  return res.json(result);
+});
+
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -79,11 +100,11 @@ app.post("/startups/:sandboxName/up",async (req, res) => {
     });
 
     await n8nImportWorkflow({
-      n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
-      username: "admin",
-      password: "admin123",
-      workflow,
-    });
+    n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
+    apiKey: "dev-api-key-123",
+    workflow,
+  });
+
 
     console.log("✅ n8n template imported for", startup.sandboxName);
   } catch (err) {
@@ -144,8 +165,13 @@ app.post("/startups/:sandboxName/n8n/template", async (req, res) => {
   try {
     const sandboxName = req.params.sandboxName;
 
-    const startup = startups.find((s) => s.sandboxName === sandboxName);
-    if (!startup) return res.status(404).json({ ok: false, error: "startup not found" });
+    const startup = findStartupBySandboxName(sandboxName);
+    if (!startup) {
+      return res.status(404).json({ ok: false, error: "startup not found" });
+    }
+
+    // wait a bit to ensure n8n is ready
+    await new Promise((r) => setTimeout(r, 4000));
 
     const workflow = buildStartupWorkflowTemplate({
       startupId: startup.startupId,
@@ -159,8 +185,9 @@ app.post("/startups/:sandboxName/n8n/template", async (req, res) => {
       workflow,
     });
 
-    res.json({ ok: true, imported });
+    return res.json({ ok: true, imported });
   } catch (e: any) {
-    res.status(500).json({ ok: false, error: String(e?.message || e) });
+    return res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 });
+
