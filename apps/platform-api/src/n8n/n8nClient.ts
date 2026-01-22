@@ -1,18 +1,26 @@
 ﻿import axios from "axios";
 
 export async function n8nImportWorkflow(params: {
-  n8nBaseUrl: string;
-  apiKey: string;
+  n8nBaseUrl: string; // http://localhost:5694
+  apiKey: string; // dev-api-key-123
   workflow: any;
 }) {
   const { n8nBaseUrl, apiKey, workflow } = params;
 
-  const url = `${n8nBaseUrl}/rest/workflows`;
+  const url = `${n8nBaseUrl}/api/v1/workflows`;
 
-  const res = await axios.post(url, workflow, {
+  const payload = {
+    name: workflow.name ?? "Startup Template",
+    nodes: workflow.nodes ?? [],
+    connections: workflow.connections ?? {},
+    settings: workflow.settings ?? {},
+    active: workflow.active ?? false,
+  };
+
+  const res = await axios.post(url, payload, {
     headers: {
-      "Content-Type": "application/json",
       "X-N8N-API-KEY": apiKey,
+      "Content-Type": "application/json",
     },
     timeout: 20000,
   });

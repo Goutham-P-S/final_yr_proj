@@ -9,9 +9,11 @@ import { StartupCreateRequest } from "./types";
 import { addStartup, listStartups, findStartupBySandboxName } from "./startupStore";
 import { dockerComposeUp, dockerComposeDown, dockerComposePs } from "./dockerRunner";
 import { buildStartupWorkflowTemplate } from "./n8n/workflowTemplate";
-import { n8nImportWorkflow } from "./n8n/n8nClient";
 import { devResetAll } from "./devReset";
 import "dotenv/config";
+import { setupN8nOwner } from "./n8n/setupN8n";
+import { waitForN8nReady } from "./n8n/waitForN8n";
+import { n8nImportWorkflow } from "./n8n/n8nClient";
 
 const app = express();
 app.use(cors());
@@ -92,24 +94,43 @@ app.post("/startups/:sandboxName/up",async (req, res) => {
   dockerComposeUp(startup.sandboxPath);
 // after containers are up, import n8n workflow template
   await sleep(4000);
-
-  try {
-    const workflow = buildStartupWorkflowTemplate({
-      startupId: startup.startupId,
-      sandboxName: startup.sandboxName,
-    });
-
-    await n8nImportWorkflow({
-    n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
-    apiKey: "dev-api-key-123",
-    workflow,
+// Wait for n8n & auto-setup owner
+// await setupN8nOwner({
+//   n8nHostPort: startup.ports.n8nPort,
+//   basicAuthUser: "admin",
+//   basicAuthPass: "admin123",
+// });
+await waitForN8nReady({
+  n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
+  username: "admin",
+  password: "admin123",
+});
+ 
+await setupN8nOwner({
+    n8nHostPort: startup.ports.n8nPort,
+    email: "admin@example.com",
+    firstName: "Admin",
+    lastName: "Startup",
+    password: "Admin12345",
+    basicAuthUser: "admin",
+    basicAuthPass: "admin123",
+    // headless: false, // debug for now
   });
 
+// Now import workflow template
+const workflow = buildStartupWorkflowTemplate({
+  startupId: startup.startupId,
+  sandboxName: startup.sandboxName,
+});
 
-    console.log("✅ n8n template imported for", startup.sandboxName);
-  } catch (err) {
-    console.log("⚠️ n8n template import failed:", err);
-  }
+await n8nImportWorkflow({
+  n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
+  apiKey: process.env.N8N_API_KEY || "dev-api-key-123",
+  workflow,
+});
+
+
+
 
   return res.json({
     ok: true,
@@ -178,12 +199,14 @@ app.post("/startups/:sandboxName/n8n/template", async (req, res) => {
       sandboxName: startup.sandboxName,
     });
 
-    const imported = await n8nImportWorkflow({
-      n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
-      username: "admin",
-      password: "admin123",
-      workflow,
-    });
+    const imported =await n8nImportWorkflow({
+  n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
+  apiKey: process.env.N8N_API_KEY || "dev-api-key-123",
+  workflow,
+});
+
+
+
 
     return res.json({ ok: true, imported });
   } catch (e: any) {
