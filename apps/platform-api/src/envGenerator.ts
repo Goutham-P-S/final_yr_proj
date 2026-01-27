@@ -54,7 +54,7 @@ export function writeSandboxEnv(params: {
   N8N_OWNER_PASSWORD=Admin12345
 
   # n8n REST API access
-  N8N_API_KEY=dev-api-key-123
+  N8N_API_KEY=${n8nApiKey}
   N8N_PUBLIC_API_DISABLED=false
 
   N8N_DIAGNOSTICS_ENABLED=false

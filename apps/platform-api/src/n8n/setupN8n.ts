@@ -1,5 +1,4 @@
 ﻿import { chromium } from "playwright";
-
 export async function setupN8nOwner(params: {
   n8nHostPort: number;
   email: string;
@@ -73,7 +72,6 @@ export async function setupN8nOwner(params: {
   // ✅ Wait for redirect away from /setup
   await page.waitForTimeout(5000);
 
-  await browser.close();
+ return { browser, page };
 
-  return { ok: true, message: "Owner setup done (attempted)" };
 }

@@ -13,7 +13,11 @@ import { devResetAll } from "./devReset";
 import "dotenv/config";
 import { setupN8nOwner } from "./n8n/setupN8n";
 import { waitForN8nReady } from "./n8n/waitForN8n";
-import { n8nImportWorkflow } from "./n8n/n8nClient";
+import { n8nImportWorkflowPublicApi } from "./n8n/publicApiClient";
+import { n8nImportWorkflowPublic } from "./n8n/n8nClient";
+import { createN8nApiKey } from "./n8n/createN8nApiKey";
+
+
 
 const app = express();
 app.use(cors());
@@ -85,28 +89,25 @@ app.post("/startups", (req, res) => {
 });
 
 // Bring up docker compose for a startup
-app.post("/startups/:sandboxName/up",async (req, res) => {
+app.post("/startups/:sandboxName/up", async (req, res) => {
   const sandboxName = req.params.sandboxName;
 
   const startup = findStartupBySandboxName(sandboxName);
   if (!startup) return res.status(404).json({ error: "startup not found" });
 
   dockerComposeUp(startup.sandboxPath);
-// after containers are up, import n8n workflow template
+  // after containers are up, import n8n workflow template
   await sleep(4000);
-// Wait for n8n & auto-setup owner
-// await setupN8nOwner({
-//   n8nHostPort: startup.ports.n8nPort,
-//   basicAuthUser: "admin",
-//   basicAuthPass: "admin123",
-// });
-await waitForN8nReady({
-  n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
-  username: "admin",
-  password: "admin123",
-});
- 
-await setupN8nOwner({
+  // Wait for n8n & auto-setup owner
+
+  await waitForN8nReady({
+    n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
+    username: "admin",
+    password: "admin123",
+  });
+
+
+  const { browser, page } = await setupN8nOwner({
     n8nHostPort: startup.ports.n8nPort,
     email: "admin@example.com",
     firstName: "Admin",
@@ -114,40 +115,25 @@ await setupN8nOwner({
     password: "Admin12345",
     basicAuthUser: "admin",
     basicAuthPass: "admin123",
-    // headless: false, // debug for now
   });
 
-// Now import workflow template
-const workflow = buildStartupWorkflowTemplate({
-  startupId: startup.startupId,
-  sandboxName: startup.sandboxName,
-});
-
-await n8nImportWorkflow({
-  n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
-  apiKey: process.env.N8N_API_KEY || "dev-api-key-123",
-  workflow,
-});
-
-
-
-
-  return res.json({
-    ok: true,
-    message: "sandbox started",
-    urls: {
-      web: "http://localhost:" + startup.ports.webPort,
-      n8n: "http://localhost:" + startup.ports.n8nPort
-    }
-
-
-
+  const apiKey = await createN8nApiKey({ page, n8nHostPort: startup.ports.n8nPort,label:'publicApi' });
+  console.log("🔐 Using API key:", apiKey);
+  console.log("🔐 API key length:", apiKey.length);
+  const workflow = buildStartupWorkflowTemplate({
+    startupId: startup.startupId,
+    sandboxName: startup.sandboxName,
   });
 
+  await n8nImportWorkflowPublic({
+    n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
+    apiKey,
+    workflow,
+  });
 
+  await browser.close();
+  return res.json({ok:true,message:"containers are up"})
 
-
-  
 });
 
 // Bring down docker compose for a startup
@@ -182,35 +168,37 @@ app.listen(PORT, () => {
   console.log("platform-api running on http://localhost:" + PORT);
 });
 
-app.post("/startups/:sandboxName/n8n/template", async (req, res) => {
-  try {
-    const sandboxName = req.params.sandboxName;
+// app.post("/startups/:sandboxName/n8n/template", async (req, res) => {
+//   try {
+//     const sandboxName = req.params.sandboxName;
 
-    const startup = findStartupBySandboxName(sandboxName);
-    if (!startup) {
-      return res.status(404).json({ ok: false, error: "startup not found" });
-    }
+//     const startup = findStartupBySandboxName(sandboxName);
+//     if (!startup) {
+//       return res.status(404).json({ ok: false, error: "startup not found" });
+//     }
 
-    // wait a bit to ensure n8n is ready
-    await new Promise((r) => setTimeout(r, 4000));
+//     // wait a bit to ensure n8n is ready
+//     await new Promise((r) => setTimeout(r, 4000));
 
-    const workflow = buildStartupWorkflowTemplate({
-      startupId: startup.startupId,
-      sandboxName: startup.sandboxName,
-    });
+//     const workflow = buildStartupWorkflowTemplate({
+//       startupId: startup.startupId,
+//       sandboxName: startup.sandboxName,
+//     });
 
-    const imported =await n8nImportWorkflow({
-  n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
-  apiKey: process.env.N8N_API_KEY || "dev-api-key-123",
-  workflow,
-});
+//     const imported =await n8nImportWorkflowViaRest({
+//   n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,
+//   cookie,
+//   workflow,
+//   basicAuthUser: "admin",
+//   basicAuthPass: "admin123",
+// });
 
 
 
 
-    return res.json({ ok: true, imported });
-  } catch (e: any) {
-    return res.status(500).json({ ok: false, error: String(e?.message || e) });
-  }
-});
+//     return res.json({ ok: true, imported });
+//   } catch (e: any) {
+//     return res.status(500).json({ ok: false, error: String(e?.message || e) });
+//   }
+// });
 
