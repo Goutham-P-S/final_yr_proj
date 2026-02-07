@@ -1,6 +1,6 @@
 ﻿import fs from "fs";
 import path from "path";
-import { SandboxPorts } from "./types";
+import { SandboxPorts, StartupVersions } from "./types";
 
 export type StartupRecord = {
   startupId: number;
@@ -9,7 +9,11 @@ export type StartupRecord = {
   sandboxPath: string;
   ports: SandboxPorts;
   createdAt: string;
+
+  // 🔐 Version pinning (NEW)
+  versions: StartupVersions;
 };
+
 
 const STORE_FILE = path.resolve(process.cwd(), "startups.store.json");
 

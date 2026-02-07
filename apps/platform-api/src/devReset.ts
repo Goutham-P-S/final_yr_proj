@@ -63,9 +63,14 @@ export function devResetAll(params: { repoRoot: string }) {
 
     const lines = vols.split(/\r?\n/).filter(Boolean);
     for (const v of lines) {
-      if (v.startsWith("startup-")) {
+      if (
+        v.startsWith("startup-") ||
+        v.startsWith("infra-") ||
+        v.includes("__planner-")
+      ) {
         safeExec(`docker volume rm ${v}`);
       }
+
     }
   } catch {
     // ignore

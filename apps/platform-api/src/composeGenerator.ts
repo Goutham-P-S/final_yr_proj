@@ -22,7 +22,8 @@
       - startup_net
 
   n8n:
-    image: n8nio/n8n:latest
+    build:
+      context: ./docker/n8n
     container_name: ${containerPrefix}_n8n
     restart: unless-stopped
     ports:
@@ -30,7 +31,7 @@
     environment:
       - NODE_ENV=production
       - GENERIC_TIMEZONE=Asia/Kolkata
-
+      - N8N_COMMUNITY_PACKAGES_ENABLED=true
 
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=db

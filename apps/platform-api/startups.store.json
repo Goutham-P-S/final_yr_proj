@@ -1,0 +1,20 @@
+[
+  {
+    "startupId": 1,
+    "slug": "n8n-pub-api-auto",
+    "ports": {
+      "webPort": 3001,
+      "dbPort": 5433,
+      "n8nPort": 5679
+    },
+    "sandboxName": "startup-0001-n8n-pub-api-auto",
+    "sandboxPath": "C:\\Users\\goutham\\Documents\\final_yr_proj\\sandboxes\\startup-0001-n8n-pub-api-auto\\infra-v1__planner-v1__ir-v1__builder-v1",
+    "createdAt": "2026-02-07T16:38:59.686Z",
+    "versions": {
+      "infra": "v1",
+      "planner": "v1",
+      "workflowIR": "v1",
+      "builder": "v1"
+    }
+  }
+]

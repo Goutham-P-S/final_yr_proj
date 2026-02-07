@@ -17,6 +17,8 @@ import { n8nImportWorkflowPublicApi } from "./n8n/publicApiClient";
 import { n8nImportWorkflowPublic } from "./n8n/n8nClient";
 import { createN8nApiKey } from "./n8n/createN8nApiKey";
 
+import { DEFAULT_STARTUP_VERSIONS } from "./versionDefaults";
+import { resolveVersions } from "./n8n/versionResolver";
 
 
 const app = express();
@@ -66,12 +68,13 @@ app.post("/startups", (req, res) => {
   const { id, ports } = allocatePorts();
 
   const repoRoot = path.resolve(process.cwd(), "..", "..");
-
+  const versions=DEFAULT_STARTUP_VERSIONS;
   const created = createSandboxFolder({
     repoRoot,
     startupId: id,
     slug,
-    ports
+    ports,
+    versions
   });
 
   const record = {
@@ -80,7 +83,8 @@ app.post("/startups", (req, res) => {
     ports,
     sandboxName: created.sandboxName,
     sandboxPath: created.sandboxPath,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    versions
   };
 
   addStartup(record);
@@ -120,10 +124,27 @@ app.post("/startups/:sandboxName/up", async (req, res) => {
   const apiKey = await createN8nApiKey({ page, n8nHostPort: startup.ports.n8nPort,label:'publicApi' });
   console.log("🔐 Using API key:", apiKey);
   console.log("🔐 API key length:", apiKey.length);
-  const workflow = buildStartupWorkflowTemplate({
+  // 🔐 Resolve planner + builder based on startup versions
+  const resolved = await resolveVersions({
+    versions: startup.versions,
+  });
+
+  // 🧠 Planner step (v1 is simple, v2 will use Ollama)
+  const ir = await resolved.planner.plan({
+    requirement: "Analyze startup feedback",
+    context: {
+      startupId: startup.startupId,
+      sandboxName: startup.sandboxName,
+    },
+  });
+
+  // 🏗️ Builder step (IR → n8n workflow)
+  const workflow = resolved.builder.build({
     startupId: startup.startupId,
     sandboxName: startup.sandboxName,
+    ir,
   });
+
 
   await n8nImportWorkflowPublic({
     n8nBaseUrl: `http://localhost:${startup.ports.n8nPort}`,

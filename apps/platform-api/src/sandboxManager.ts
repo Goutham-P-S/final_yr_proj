@@ -5,6 +5,16 @@ import { writeSandboxEnv } from "./envGenerator";
 import { writeWebEnv } from "./webEnvGenerator";
 import { buildComposeYml } from "./composeGenerator";
 
+type VersionMap = {
+  infra: string;
+  planner: string;
+  workflowIR: string;
+  builder: string;
+};
+
+function versionSignature(v: VersionMap) {
+  return `infra-${v.infra}__planner-${v.planner}__ir-${v.workflowIR}__builder-${v.builder}`;
+}
 
 export function slugify(input: string) {
   const s = input.trim().toLowerCase();
@@ -53,12 +63,34 @@ export function createSandboxFolder(params: {
   startupId: number;
   slug: string;
   ports: SandboxPorts;
-}) {
-  const { repoRoot, startupId, slug, ports } = params;
+  versions: {
+    infra: string;
+    planner: string;
+    workflowIR: string;
+    builder: string;
+  };
+})
+{
+  const { repoRoot, startupId, slug, ports,versions } = params;
 
   const idStr = String(startupId).padStart(4, "0");
   const sandboxName = "startup-" + idStr + "-" + slug;
-  const sandboxPath = path.join(repoRoot, "sandboxes", sandboxName);
+  const versionDir = versionSignature(versions);
+  const sandboxPath = path.join(
+  repoRoot,
+  "sandboxes",
+  sandboxName,
+  versionDir
+);
+  const dockerDir = path.join(sandboxPath, "docker", "n8n");
+  fs.mkdirSync(dockerDir, { recursive: true });
+
+  fs.copyFileSync(
+    path.join(repoRoot,"apps","platform-api","src" ,"docker", "n8n", "Dockerfile"),
+    path.join(dockerDir, "Dockerfile")
+  );
+
+
 
   fs.mkdirSync(sandboxPath, { recursive: true });
 

@@ -15,6 +15,8 @@ export function writeSandboxEnv(params: {
   n8nPass?: string;
 
   n8nApiKey?: string;
+  platformApiPort?: number;
+  ollamaPort?: number;
 }) {
   const {
     sandboxPath,
@@ -25,11 +27,13 @@ export function writeSandboxEnv(params: {
     startupDbUser = "startup",
     startupDbPass = "startup",
     startupDbName = "startupdb",
-
+    
     n8nUser = "admin",
     n8nPass = "admin123",
 
     n8nApiKey = "dev-api-key-123",
+    platformApiPort = 5050,
+    ollamaPort = 11434,
   } = params;
 
   const envText =
@@ -59,6 +63,8 @@ export function writeSandboxEnv(params: {
 
   N8N_DIAGNOSTICS_ENABLED=false
   N8N_PERSONALIZATION_ENABLED=false
+  PLATFORM_API_URL=http://host.docker.internal:${platformApiPort}
+  OLLAMA_URL=http://host.docker.internal:${ollamaPort}/api/generate
   `;
 
   fs.writeFileSync(path.join(sandboxPath, ".env"), envText, "utf8");
