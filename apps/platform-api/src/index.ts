@@ -8,15 +8,12 @@ import { StartupCreateRequest } from "./types";
 
 import { addStartup, listStartups, findStartupBySandboxName } from "./startupStore";
 import { dockerComposeUp, dockerComposeDown, dockerComposePs } from "./dockerRunner";
-import { buildStartupWorkflowTemplate } from "./n8n/workflowTemplate";
 import { devResetAll } from "./devReset";
 import "dotenv/config";
 import { setupN8nOwner } from "./n8n/setupN8n";
 import { waitForN8nReady } from "./n8n/waitForN8n";
-import { n8nImportWorkflowPublicApi } from "./n8n/publicApiClient";
 import { n8nImportWorkflowPublic } from "./n8n/n8nClient";
 import { createN8nApiKey } from "./n8n/createN8nApiKey";
-
 import { DEFAULT_STARTUP_VERSIONS } from "./versionDefaults";
 import { resolveVersions } from "./n8n/versionResolver";
 
@@ -99,7 +96,7 @@ app.post("/startups/:sandboxName/up", async (req, res) => {
   const startup = findStartupBySandboxName(sandboxName);
   if (!startup) return res.status(404).json({ error: "startup not found" });
 
-  dockerComposeUp(startup.sandboxPath);
+  dockerComposeUp(startup.sandboxPath,startup.sandboxName);
   // after containers are up, import n8n workflow template
   await sleep(4000);
   // Wait for n8n & auto-setup owner

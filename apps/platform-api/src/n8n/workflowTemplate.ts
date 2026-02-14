@@ -1,11 +1,7 @@
 ﻿export function buildStartupWorkflowTemplate(params: {
   startupId: number;
   sandboxName: string;
-
-  // URLs reachable FROM INSIDE the n8n container
-  startupWebInternalUrl?: string;   // default http://web:3000
-
-
+  startupWebInternalUrl?: string; // default http://web:3000
 }) {
   const {
     startupId,
@@ -42,48 +38,81 @@
         },
       },
 
+      // ✅ FIXED BUILD PROMPT NODE
       {
-        id: "build_prompt",
+  id: "build_prompt",
   name: "Build prompt",
   type: "n8n-nodes-base.code",
-  typeVersion: 1,
+  typeVersion: 2, // 👈 IMPORTANT (use v2)
   position: [780, 250],
   parameters: {
-    language: "javascript",
-    code: `
-const list = $json.feedback || [];
-const top = list.slice(0, 30).map(f => "- " + f.message).join("\\n");
+    jsCode: `
+const items = $input.all();
 
-return [{
-  json: {
-    sandboxName: "${sandboxName}",
-    startupId: ${startupId},
-    prompt: "You are a product analyst. Read the feedback and return ONLY JSON with keys: summary, topProblems[], topFeatureRequests[], quickWins[].\\n\\nFeedback:\\n" + top
-  }
-}];
+if (!items.length) {
+  return [{
+    json: {
+      sandboxName: "${sandboxName}",
+      startupId: ${startupId},
+      prompt: "No feedback available"
+    }
+  }];
+}
+
+return items.map(item => {
+  const data = item.json ?? {};
+
+  let feedback = [];
+  if (Array.isArray(data.feedback)) feedback = data.feedback;
+  else if (Array.isArray(data.data)) feedback = data.data;
+
+  const top = feedback
+    .slice(0, 30)
+    .map(f => {
+      if (typeof f === "string") return "- " + f;
+      if (f?.message) return "- " + f.message;
+      return "- " + JSON.stringify(f);
+    })
+    .join("\\n");
+
+  return {
+    json: {
+      sandboxName: "${sandboxName}",
+      startupId: ${startupId},
+      prompt:
+        "You are a product analyst. Read the feedback and return ONLY JSON with keys: summary, topProblems[], topFeatureRequests[], quickWins[].\\n\\nFeedback:\\n" +
+        (top || "No feedback found")
+    }
+  };
+});
     `.trim(),
   },
-      },
+}
+,
 
-      {
-        id: "ollama_analyze",
-        name: "Ollama analyze",
-        type: "n8n-nodes-base.httpRequest",
-        typeVersion: 4,
-        position: [1040, 250],
-        parameters: {
-          url:  "={{ $env.OLLAMA_URL }}",
-          method: "POST",
-          responseFormat: "json",
-          jsonParameters: true,
-          options: {},
-          bodyParametersJson: `{
-  "model": "llama3.1",
-  "prompt": "{{$json.prompt}}",
-  "stream": false
-}`,
-        },
-      },
+{
+  id: "ollama_analyze",
+  name: "Ollama analyze",
+  type: "n8n-nodes-base.httpRequest",
+  typeVersion: 4,
+  position: [1040, 250],
+  parameters: {
+    url: "={{ $env.OLLAMA_URL }}",
+    method: "POST",
+    responseFormat: "json",
+
+    sendBody: true,
+    specifyBody: "json",
+
+    jsonBody: "={{ { \
+  model: 'llama3.1', \
+  prompt: $json.prompt || 'No prompt provided', \
+  stream: false \
+} }}",
+  },
+}
+
+,
 
       {
         id: "send_platform",
@@ -92,11 +121,15 @@ return [{
         typeVersion: 4,
         position: [1300, 250],
         parameters: {
-          url: "={{ $env.PLATFORM_API_URL }}/startups/{{ $json.sandboxName }}/suggestions",
+          url: `{{ 
+   "http://host.docker.internal:5050/startups/" + 
+  ($node["Build prompt"]?.json?.sandboxName || "fallback") + 
+  "/suggestions" 
+}}`
+,
           method: "POST",
           responseFormat: "json",
           jsonParameters: true,
-          options: {},
           bodyParametersJson: `{
   "startupId": ${startupId},
   "sandboxName": "${sandboxName}",

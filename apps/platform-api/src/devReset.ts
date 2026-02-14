@@ -66,7 +66,8 @@ export function devResetAll(params: { repoRoot: string }) {
       if (
         v.startsWith("startup-") ||
         v.startsWith("infra-") ||
-        v.includes("__planner-")
+        v.includes("__planner-")||
+        v.includes("n8n_data")
       ) {
         safeExec(`docker volume rm ${v}`);
       }

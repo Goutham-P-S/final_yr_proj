@@ -1,7 +1,7 @@
 import { execSync } from "child_process";
 
-export function dockerComposeUp(sandboxPath: string) {
-  const cmd = "docker compose --env-file .env up -d";
+export function dockerComposeUp(sandboxPath: string, projectName: string) {
+  const cmd = `docker compose -p ${projectName} --env-file .env up -d`;
   console.log("RUNNING:", cmd);
   execSync(cmd, { cwd: sandboxPath, stdio: "inherit" });
 }

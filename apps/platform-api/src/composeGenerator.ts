@@ -17,7 +17,7 @@
     ports:
       - "\${DB_PORT}:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data_${containerPrefix}:/var/lib/postgresql/data
     networks:
       - startup_net
 
@@ -39,7 +39,8 @@
       - DB_POSTGRESDB_DATABASE=\${POSTGRES_DB}
       - DB_POSTGRESDB_USER=\${POSTGRES_USER}
       - DB_POSTGRESDB_PASSWORD=\${POSTGRES_PASSWORD}
-
+      - PLATFORM_API_URL=http://host.docker.internal:5050
+      - OLLAMA_URL=http://host.docker.internal:11434/api/generate
 
       - N8N_USER_MANAGEMENT_DISABLED=\${N8N_USER_MANAGEMENT_DISABLED}
 
@@ -60,7 +61,7 @@
       - N8N_GIT_NODE_DISABLE_BARE_REPOS=true
 
     volumes:
-      - n8n_data:/home/node/.n8n
+      - n8n_data_${containerPrefix}:/home/node/.n8n
     networks:
       - startup_net
 
@@ -83,8 +84,8 @@
       - startup_net
 
 volumes:
-  db_data:
-  n8n_data:
+  db_data_${containerPrefix}:
+  n8n_data_${containerPrefix}:
 
 networks:
   startup_net:

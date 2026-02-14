@@ -43,7 +43,13 @@ function sanitizeWorkflowForPublicApi(workflow: any) {
       type: n.type,
       typeVersion: n.typeVersion,
       position: n.position,
-      parameters: n.parameters ?? {},
+      parameters: n.parameters ??  {
+  ...n.parameters,
+  ...(n.type === "n8n-nodes-base.code"
+    ? { code: n.parameters.code }
+    : {}),
+},
+
       credentials: n.credentials
         ? Object.fromEntries(
             Object.entries(n.credentials).map(([key, val]: any) => [
@@ -53,6 +59,7 @@ function sanitizeWorkflowForPublicApi(workflow: any) {
           )
         : undefined,
     })),
+    
     connections: workflow.connections ?? {},
     settings: workflow.settings ?? {},
   };
@@ -67,38 +74,46 @@ export async function n8nImportWorkflowPublic(params: {
 
   const payload = sanitizeWorkflowForPublicApi(workflow);
 
-  console.log("📦 Sending workflow payload:", JSON.stringify(payload, null, 2));
+  const headers = {
+    "X-N8N-API-KEY": apiKey,
+    "Content-Type": "application/json",
+  };
 
-  const res = await axios.post(
-    `${n8nBaseUrl}/api/v1/workflows`,
-    payload,
-    {
-      headers: {
-        "X-N8N-API-KEY": apiKey,
-        "Content-Type": "application/json",
-      },
-      timeout: 30000,
-      validateStatus: () => true,
-    }
+  // 1️⃣ Get all workflows
+  const listRes = await axios.get(`${n8nBaseUrl}/api/v1/workflows`, {
+    headers,
+  });
+
+  const existing = listRes.data.data.find(
+    (w: any) => w.name === workflow.name
   );
 
-  if (res.status >= 400) {
-    throw new Error(
-      `n8n public API import failed ${res.status}: ${JSON.stringify(res.data)}`
+  // ❗ HARD DELETE (critical fix)
+  if (existing) {
+    console.log("🧹 Deleting old workflow:", existing.id);
+
+    await axios.delete(
+      `${n8nBaseUrl}/api/v1/workflows/${existing.id}`,
+      { headers }
     );
   }
 
- const workflowId = res.data.id;
+  // 2️⃣ Always create fresh
+  console.log("🆕 Creating fresh workflow");
 
-  // 2️⃣ Activate workflow
+  const createRes = await axios.post(
+    `${n8nBaseUrl}/api/v1/workflows`,
+    payload,
+    { headers }
+  );
+
+  const workflowId = createRes.data.id;
+
+  // 3️⃣ Activate
   await axios.post(
     `${n8nBaseUrl}/api/v1/workflows/${workflowId}/activate`,
     {},
-    {
-      headers: {
-        "X-N8N-API-KEY": apiKey,
-      },
-    }
+    { headers }
   );
 
   return { workflowId };
