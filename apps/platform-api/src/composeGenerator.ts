@@ -6,6 +6,32 @@
   // We keep ${VAR} literally by writing it as plain text.
   const compose =
 `services:
+  backend:
+    image: node:20-alpine
+    container_name: ${containerPrefix}_backend
+    working_dir: /app
+    restart: unless-stopped
+    ports:
+      - "\${BACKEND_PORT}:4000"
+    environment:
+      - PORT=4000
+
+      # ✅ IMPORTANT: DB connection
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=\${POSTGRES_USER}
+      - DB_PASS=\${POSTGRES_PASSWORD}
+      - DB_NAME=\${POSTGRES_DB}
+
+    volumes:
+      - ./backend:/app
+    command: sh -c "npm install && node server.js"
+    depends_on:
+      - db
+    networks:
+      - startup_net
+
+
   db:
     image: postgres:16
     container_name: ${containerPrefix}_db

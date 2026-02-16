@@ -31,6 +31,7 @@ export function slugify(input: string) {
   return out;
 }
 
+
 function seedWebApp(webPath: string) {
   // Minimal node web server (ASCII safe)
   const pkg = `{
@@ -56,6 +57,86 @@ http.createServer((req, res) => {
 
   fs.writeFileSync(path.join(webPath, "package.json"), pkg, "utf8");
   fs.writeFileSync(path.join(webPath, "server.js"), server, "utf8");
+}
+
+
+function seedBackendApp(backendPath: string) {
+  const pkg = `{
+  "name": "startup-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "cors": "^2.8.5"
+  }
+}
+`;
+
+  const server = `const express = require("express");
+const cors = require("cors");
+const { Pool } = require("pg");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const pool = new Pool({
+  user: process.env.POSTGRES_USER,
+  host: "db",
+  database: process.env.POSTGRES_DB,
+  password: process.env.POSTGRES_PASSWORD,
+  port: 5432,
+});
+
+// ✅ create table if not exists
+async function init() {
+  await pool.query(\`
+    CREATE TABLE IF NOT EXISTS suggestions (
+      id SERIAL PRIMARY KEY,
+      startup_id INT,
+      sandbox_name TEXT,
+      analysis JSONB,
+      approved BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  \`);
+}
+init();
+
+// ✅ receive from n8n
+app.post("/api/suggestions", async (req, res) => {
+  try {
+    const { startupId, sandboxName, analysis } = req.body;
+
+    const result = await pool.query(
+      "INSERT INTO suggestions (startup_id, sandbox_name, analysis) VALUES ($1, $2, $3) RETURNING *",
+      [startupId, sandboxName, analysis]
+    );
+
+    res.json({ ok: true, data: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "failed to store suggestion" });
+  }
+});
+
+// ✅ fetch suggestions (frontend later)
+app.get("/api/suggestions", async (req, res) => {
+  const result = await pool.query("SELECT * FROM suggestions ORDER BY created_at DESC");
+  res.json(result.rows);
+});
+
+app.listen(4000, () => {
+  console.log("Backend running on port 4000");
+});
+`;
+
+  fs.writeFileSync(path.join(backendPath, "package.json"), pkg, "utf8");
+  fs.writeFileSync(path.join(backendPath, "server.js"), server, "utf8");
 }
 
 export function createSandboxFolder(params: {
@@ -94,8 +175,12 @@ export function createSandboxFolder(params: {
 
   fs.mkdirSync(sandboxPath, { recursive: true });
 
+  const backendPath = path.join(sandboxPath, "backend");
+  fs.mkdirSync(backendPath, { recursive: true });
   const webPath = path.join(sandboxPath, "web");
   fs.mkdirSync(webPath, { recursive: true });
+  
+
   writeWebEnv({
     webPath,
     dbUser: "startup",
@@ -107,7 +192,7 @@ export function createSandboxFolder(params: {
 
   // seed the web app so container doesn't crash
   seedWebApp(webPath);
-
+  seedBackendApp(backendPath);
   writeSandboxEnv({
     sandboxPath,
     webPort: ports.webPort,

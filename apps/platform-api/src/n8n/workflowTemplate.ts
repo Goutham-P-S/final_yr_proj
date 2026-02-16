@@ -121,12 +121,7 @@ return items.map(item => {
         typeVersion: 4,
         position: [1300, 250],
         parameters: {
-          url: `{{ 
-   "http://host.docker.internal:5050/startups/" + 
-  ($node["Build prompt"]?.json?.sandboxName || "fallback") + 
-  "/suggestions" 
-}}`
-,
+          url: "http://backend:4000/api/suggestions",
           method: "POST",
           responseFormat: "json",
           jsonParameters: true,
