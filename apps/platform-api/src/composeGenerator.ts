@@ -11,25 +11,29 @@
     container_name: ${containerPrefix}_backend
     working_dir: /app
     restart: unless-stopped
-    ports:
-      - "\${BACKEND_PORT}:4000"
-    environment:
-      - PORT=4000
 
-      # ✅ IMPORTANT: DB connection
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=\${POSTGRES_USER}
-      - DB_PASS=\${POSTGRES_PASSWORD}
-      - DB_NAME=\${POSTGRES_DB}
+    env_file:
+      - .env
+
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+
+    ports:
+      - \${BACKEND_PORT}:4000
 
     volumes:
       - ./backend:/app
+
     command: sh -c "npm install && node server.js"
+
     depends_on:
       - db
+
     networks:
       - startup_net
+
 
 
   db:
@@ -100,7 +104,13 @@
     ports:
       - "\${WEB_PORT}:3000"
     environment:
-      - PORT=3000
+    - PORT=3000
+    - DB_HOST=db
+    - DB_PORT=5432
+    - DB_USER=\${POSTGRES_USER}
+    - DB_PASS=\${POSTGRES_PASSWORD}
+    - DB_NAME=\${POSTGRES_DB}
+    - BACKEND_URL=http://backend:4000
     volumes:
       - ./web:/app
     command: sh -c "npm install && npm run dev -- --hostname 0.0.0.0"

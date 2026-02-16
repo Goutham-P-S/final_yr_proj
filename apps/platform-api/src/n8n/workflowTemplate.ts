@@ -124,12 +124,12 @@ return items.map(item => {
           url: "http://backend:4000/api/suggestions",
           method: "POST",
           responseFormat: "json",
-          jsonParameters: true,
-          bodyParametersJson: `{
-  "startupId": ${startupId},
-  "sandboxName": "${sandboxName}",
-  "analysis": {{$json}}
-}`,
+          sendBody:true,
+          specifyBody:"json",
+          jsonBody:`={"startupId":{{$("Build prompt").item.json.startupId}},
+  "sandboxName":{{$("Build prompt").item.json.sandboxName.toJsonString()}},
+  "analysis": {{$json.response.replaceSpecialChars().replaceAll("\`\`\`","").toJsonString()}}
+        }`,
         },
       },
     ],

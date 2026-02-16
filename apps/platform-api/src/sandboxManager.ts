@@ -4,6 +4,7 @@ import { SandboxPorts } from "./types";
 import { writeSandboxEnv } from "./envGenerator";
 import { writeWebEnv } from "./webEnvGenerator";
 import { buildComposeYml } from "./composeGenerator";
+import { writeBackendEnv } from "./backendEnvGenerator";
 
 type VersionMap = {
   infra: string;
@@ -192,6 +193,11 @@ export function createSandboxFolder(params: {
 
   // seed the web app so container doesn't crash
   seedWebApp(webPath);
+  writeBackendEnv({backendPath,
+    dbUser: "startup",
+    dbPass: "startup",
+    dbName: "startupdb",});
+
   seedBackendApp(backendPath);
   writeSandboxEnv({
     sandboxPath,
