@@ -17,6 +17,11 @@ import { createN8nApiKey } from "./n8n/createN8nApiKey";
 import { DEFAULT_STARTUP_VERSIONS } from "./versionDefaults";
 import { resolveVersions } from "./n8n/versionResolver";
 
+import http from "http";
+import { initWebSocket } from "./ws/wsServer";
+import orchestrateRoutes from "./routes/orchestrate";
+import { startContainers } from "./lifecycle/startContainers";
+import { createStartupFromPrompt } from "./lifecycle/createStartup";
 
 const app = express();
 app.use(cors());
@@ -61,30 +66,10 @@ app.post("/startups", (req, res) => {
     return res.status(400).json({ error: "name is required" });
   }
 
-  const slug = body.slug ? slugify(body.slug) : slugify(body.name);
-  const { id, ports } = allocatePorts();
+  // const slug = body.slug ? slugify(body.slug) : slugify(body.name);
+  const record = createStartupFromPrompt(req.body.name);
+  res.json(record);
 
-  const repoRoot = path.resolve(process.cwd(), "..", "..");
-  const versions=DEFAULT_STARTUP_VERSIONS;
-  const created = createSandboxFolder({
-    repoRoot,
-    startupId: id,
-    slug,
-    ports,
-    versions
-  });
-
-  const record = {
-    startupId: id,
-    slug,
-    ports,
-    sandboxName: created.sandboxName,
-    sandboxPath: created.sandboxPath,
-    createdAt: new Date().toISOString(),
-    versions
-  };
-
-  addStartup(record);
 
   return res.json(record);
 });
@@ -94,9 +79,11 @@ app.post("/startups/:sandboxName/up", async (req, res) => {
   const sandboxName = req.params.sandboxName;
 
   const startup = findStartupBySandboxName(sandboxName);
+  startContainers(startup);
+  
   if (!startup) return res.status(404).json({ error: "startup not found" });
 
-  dockerComposeUp(startup.sandboxPath,startup.sandboxName);
+  
   // after containers are up, import n8n workflow template
   await sleep(4000);
   // Wait for n8n & auto-setup owner
@@ -181,11 +168,18 @@ app.get("/startups/:sandboxName/status", (req, res) => {
   });
 });
 
+
+app.use("/orchestrate", orchestrateRoutes);
+
 const PORT = 5050;
-app.listen(PORT, () => {
+
+const server = http.createServer(app);
+
+initWebSocket(server);
+
+server.listen(PORT, () => {
   console.log("platform-api running on http://localhost:" + PORT);
 });
-
 // app.post("/startups/:sandboxName/n8n/template", async (req, res) => {
 //   try {
 //     const sandboxName = req.params.sandboxName;

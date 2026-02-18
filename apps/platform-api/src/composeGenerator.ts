@@ -26,7 +26,9 @@
     volumes:
       - ./backend:/app
 
-    command: sh -c "npm install && node server.js"
+    command: sh -c "npm install && npx prisma generate && npx prisma migrate deploy && npm run dev"
+
+
 
     depends_on:
       - db

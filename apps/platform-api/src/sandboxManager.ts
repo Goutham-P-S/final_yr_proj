@@ -61,84 +61,88 @@ http.createServer((req, res) => {
 }
 
 
-function seedBackendApp(backendPath: string) {
-  const pkg = `{
-  "name": "startup-backend",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "dev": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "pg": "^8.11.3",
-    "cors": "^2.8.5"
-  }
-}
-`;
+function seedBackendSkeleton(backendPath: string) {
+  const pkg = {
+    name: "startup-backend",
+    version: "1.0.0",
+    scripts: {
+      dev: "ts-node-dev --respawn --transpile-only src/index.ts",
+      build: "tsc",
+      start: "node dist/index.js"
+    },
+    dependencies: {
+      express: "^4.18.2",
+      cors: "^2.8.5",
+      "@prisma/client": "^5.0.0"
+    },
+    devDependencies: {
+      typescript: "^5.0.0",
+      "ts-node-dev": "^2.0.0",
+      prisma: "^5.0.0",
+      "@types/express": "^4.17.0"
+    }
+  };
 
-  const server = `const express = require("express");
-const cors = require("cors");
-const { Pool } = require("pg");
+  fs.writeFileSync(
+    path.join(backendPath, "package.json"),
+    JSON.stringify(pkg, null, 2)
+  );
+
+  fs.writeFileSync(
+    path.join(backendPath, "tsconfig.json"),
+`{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true
+  }
+}`
+  );
+
+  const prismaDir = path.join(backendPath, "prisma");
+  fs.mkdirSync(prismaDir, { recursive: true });
+
+  // Temporary placeholder schema (will be replaced by WebDevAgent)
+  fs.writeFileSync(
+    path.join(prismaDir, "schema.prisma"),
+`generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Placeholder {
+  id Int @id @default(autoincrement())
+}
+`
+  );
+
+  const srcDir = path.join(backendPath, "src");
+  fs.mkdirSync(srcDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(srcDir, "index.ts"),
+`
+import express from "express";
 
 const app = express();
-app.use(cors());
-app.use(express.json());
-
-const pool = new Pool({
-  user: process.env.POSTGRES_USER,
-  host: "db",
-  database: process.env.POSTGRES_DB,
-  password: process.env.POSTGRES_PASSWORD,
-  port: 5432,
-});
-
-// ✅ create table if not exists
-async function init() {
-  await pool.query(\`
-    CREATE TABLE IF NOT EXISTS suggestions (
-      id SERIAL PRIMARY KEY,
-      startup_id INT,
-      sandbox_name TEXT,
-      analysis JSONB,
-      approved BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  \`);
-}
-init();
-
-// ✅ receive from n8n
-app.post("/api/suggestions", async (req, res) => {
-  try {
-    const { startupId, sandboxName, analysis } = req.body;
-
-    const result = await pool.query(
-      "INSERT INTO suggestions (startup_id, sandbox_name, analysis) VALUES ($1, $2, $3) RETURNING *",
-      [startupId, sandboxName, analysis]
-    );
-
-    res.json({ ok: true, data: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "failed to store suggestion" });
-  }
-});
-
-// ✅ fetch suggestions (frontend later)
-app.get("/api/suggestions", async (req, res) => {
-  const result = await pool.query("SELECT * FROM suggestions ORDER BY created_at DESC");
-  res.json(result.rows);
+app.get("/", (_, res) => {
+  res.json({ message: "Backend skeleton ready" });
 });
 
 app.listen(4000, () => {
   console.log("Backend running on port 4000");
 });
-`;
-
-  fs.writeFileSync(path.join(backendPath, "package.json"), pkg, "utf8");
-  fs.writeFileSync(path.join(backendPath, "server.js"), server, "utf8");
+`
+  );
 }
+
 
 export function createSandboxFolder(params: {
   repoRoot: string;
@@ -197,8 +201,9 @@ export function createSandboxFolder(params: {
     dbUser: "startup",
     dbPass: "startup",
     dbName: "startupdb",});
+  seedBackendSkeleton(backendPath);
 
-  seedBackendApp(backendPath);
+
   writeSandboxEnv({
     sandboxPath,
     webPort: ports.webPort,

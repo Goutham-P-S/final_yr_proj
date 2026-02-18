@@ -23,7 +23,10 @@ DB_USER=${dbUser}
 DB_PASS=${dbPass}
 DB_NAME=${dbName}
 PORT=4000
-
+DATABASE_URL="postgresql://${dbUser}:${dbPass}@db:5432/${dbName}?schema=public"
+JWT_SECRET=supersecret
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
 `;
 
   fs.writeFileSync(path.join(backendPath, ".env"), envText, "ascii");
