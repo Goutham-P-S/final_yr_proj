@@ -2,7 +2,7 @@ import { Router } from "express";
 import { randomUUID } from "crypto";
 import { createJob } from "../jobs/jobStore";
 import { runOrchestration } from "../orchestrator/orchestrateWorker";
-
+import { enqueueJob } from "../queue/jobQueue";
 const router = Router();
 
 router.post("/", async (req, res) => {
@@ -16,8 +16,7 @@ router.post("/", async (req, res) => {
 
   createJob(jobId);
 
-  // Run in background
-  runOrchestration(jobId, prompt);
+  enqueueJob(jobId, prompt);
 
   res.json({ jobId });
 });

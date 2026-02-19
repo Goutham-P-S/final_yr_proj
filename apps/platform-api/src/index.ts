@@ -22,10 +22,18 @@ import { initWebSocket } from "./ws/wsServer";
 import orchestrateRoutes from "./routes/orchestrate";
 import { startContainers } from "./lifecycle/startContainers";
 import { createStartupFromPrompt } from "./lifecycle/createStartup";
+import jobRoutes from "./routes/jobs";
+
+
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
+
 app.use(express.json());
+app.use("/jobs", jobRoutes);
 app.post("/dev/reset-all", (req, res) => {
   // Layer 1: feature flag
   if (process.env.ALLOW_DEV_RESET !== "true") {

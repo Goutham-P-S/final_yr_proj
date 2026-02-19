@@ -1,11 +1,12 @@
 import path from "path";
-import { execSync } from "child_process";
 import fs from "fs";
 
 import { planBackendArchitecture } from "./backendPlanner";
 import { generatePrismaSchema } from "./prismaGenerator";
 import { generateCrudForEntity } from "./crudGenerator";
 import { generateBackendScaffold } from "./backendScaffoldGenerator";
+import { runCommand } from "../../orchestrator/runCommand";
+import { writeBackendEnv } from "../../backendEnvGenerator";
 
 function injectAuthModels(schema: string) {
   const authModels = `
@@ -37,18 +38,18 @@ model UserRole {
   return schema + "\n" + authModels;
 }
 
-
 export async function runWebDevAgent(params: {
   startupId: number;
   sandboxPath: string;
   requirement: string;
+  jobId: string;
 }) {
   console.log("🧠 Web Dev Agent starting...");
 
   const backendPath = path.join(params.sandboxPath, "backend");
 
   //
-  // 1️⃣ Plan backend
+  // 1️⃣ Plan backend (already normalized inside planner)
   //
   const plan = await planBackendArchitecture(params.requirement);
 
@@ -59,17 +60,20 @@ export async function runWebDevAgent(params: {
   prismaSchema = injectAuthModels(prismaSchema);
 
   //
-  // 3️⃣ Remove old backend completely (clean regeneration)
+  // 3️⃣ Remove old backend completely
   //
   if (fs.existsSync(backendPath)) {
     fs.rmSync(backendPath, { recursive: true, force: true });
   }
 
   //
-  // 4️⃣ Generate full backend scaffold
+  // 4️⃣ Generate backend scaffold
   //
   generateBackendScaffold(backendPath, prismaSchema);
-
+  writeBackendEnv({backendPath,
+      dbUser: "startup",
+      dbPass: "startup",
+      dbName: "startupdb",});
   //
   // 5️⃣ Generate CRUD per entity
   //
@@ -80,26 +84,36 @@ export async function runWebDevAgent(params: {
   //
   // 6️⃣ Install dependencies
   //
-  console.log("📦 Installing backend dependencies...");
-  execSync("npm install", {
-    cwd: backendPath,
-    stdio: "inherit"
-  });
+  console.log("🔥 BEFORE INSTALL");
 
-  //
-  // 7️⃣ Run initial migration (ONLY ONCE)
-  //
-  console.log("⚙️ Running initial Prisma migration...");
+  await runCommand(
+    params.jobId,
+    "npm",
+    ["install"],
+    backendPath
+  );
+console.log("🔥 AFTER INSTALL");
 
-  execSync("npx prisma generate", {
-    cwd: backendPath,
-    stdio: "inherit"
-  });
+  // //
+  // // 7️⃣ Generate Prisma Client
+  // //
+  // await runCommand(
+  //   params.jobId,
+  //   "npx",
+  //   ["prisma", "generate"],
+  //   backendPath
+  // );
 
-  execSync("npx prisma migrate dev --name init", {
-    cwd: backendPath,
-    stdio: "inherit"
-  });
+  // //
+  // // 8️⃣ Run Migration
+  // //
+  // await runCommand(
+  //   params.jobId,
+  //   "npx",
+  //   ["prisma", "migrate", "deploy"],
+  //   backendPath
+  // );
+
 
   console.log("✅ Backend fully generated with migrations");
 }

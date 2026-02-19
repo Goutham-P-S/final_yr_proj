@@ -17,89 +17,57 @@ export function dockerComposeRecreate(envFile: string) {
 export function devResetAll(params: { repoRoot: string }) {
   const { repoRoot } = params;
 
-  // 1) remove startup containers
-  safeExec(`docker ps -a --format "{{.ID}} {{.Names}}" | findstr startup_`);
-
+  // 1️⃣ Remove containers
   try {
-    const out = execSync(`docker ps -a --format "{{.ID}} {{.Names}}"`, {
-      stdio: "pipe",
-    }).toString("utf8");
+    const containers = execSync(
+      `docker ps -a --format "{{.ID}} {{.Names}}"`,
+      { stdio: "pipe" }
+    ).toString("utf8");
 
-    const lines = out.split(/\r?\n/).filter(Boolean);
-
-    for (const line of lines) {
-      const parts = line.split(" ");
-      const id = parts[0];
-      const name = parts.slice(1).join(" ");
+    for (const line of containers.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      const [id, name] = line.split(" ");
       if (name.startsWith("startup_")) {
         safeExec(`docker rm -f ${id}`);
       }
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
 
-  // 2) remove startup networks
+  // 2️⃣ Remove volumes
   try {
-    const nets = execSync(`docker network ls --format "{{.Name}}"`, {
-      stdio: "pipe",
-    }).toString("utf8");
+    const volumes = execSync(
+      `docker volume ls --format "{{.Name}}"`,
+      { stdio: "pipe" }
+    ).toString("utf8");
 
-    const lines = nets.split(/\r?\n/).filter(Boolean);
-    for (const n of lines) {
-      if (n.startsWith("startup-")) {
-        safeExec(`docker network rm ${n}`);
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  // 3) remove startup volumes (optional)
-  try {
-    const vols = execSync(`docker volume ls --format "{{.Name}}"`, {
-      stdio: "pipe",
-    }).toString("utf8");
-
-    const lines = vols.split(/\r?\n/).filter(Boolean);
-    for (const v of lines) {
-      if (
-        v.startsWith("startup-") ||
-        v.startsWith("infra-") ||
-        v.includes("__planner-")||
-        v.includes("n8n_data")
-      ) {
+    for (const v of volumes.split(/\r?\n/)) {
+      if (!v.trim()) continue;
+      if (v.includes("startup_")) {
         safeExec(`docker volume rm ${v}`);
       }
-
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
 
-  // 4) delete sandboxes/startup-* folders
+  // 3️⃣ Remove network
+  safeExec("docker network rm startup_net");
+
+  // 4️⃣ Delete sandbox folders
   const sandboxesPath = path.join(repoRoot, "sandboxes");
   if (fs.existsSync(sandboxesPath)) {
-    const items = fs.readdirSync(sandboxesPath);
-    for (const item of items) {
-      if (item.startsWith("startup-")) {
-        const full = path.join(sandboxesPath, item);
-        fs.rmSync(full, { recursive: true, force: true });
-      }
-    }
+    fs.rmSync(sandboxesPath, { recursive: true, force: true });
   }
 
-  // 5) remove store file (if you are using it)
+  // 5️⃣ Reset store files
   const storeFile = path.resolve(process.cwd(), "startups.store.json");
   if (fs.existsSync(storeFile)) {
     fs.rmSync(storeFile, { force: true });
   }
 
-  // 6) reset port allocator file if you created one (optional)
-  const portsFile = path.resolve(process.cwd(), "ports.store.json");
+  const portsFile = path.resolve(process.cwd(), "ports.state.json");
   if (fs.existsSync(portsFile)) {
     fs.rmSync(portsFile, { force: true });
   }
 
-  return { ok: true, message: "Reset complete" };
+  return { ok: true, message: "Full reset complete" };
 }
+

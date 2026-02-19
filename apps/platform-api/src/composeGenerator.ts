@@ -7,7 +7,7 @@
   const compose =
 `services:
   backend:
-    image: node:20-alpine
+    image: node:20
     container_name: ${containerPrefix}_backend
     working_dir: /app
     restart: unless-stopped
@@ -26,7 +26,8 @@
     volumes:
       - ./backend:/app
 
-    command: sh -c "npm install && npx prisma generate && npx prisma migrate deploy && npm run dev"
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+
 
 
 
@@ -50,6 +51,7 @@
       - "\${DB_PORT}:5432"
     volumes:
       - db_data_${containerPrefix}:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - startup_net
 
@@ -68,7 +70,7 @@
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=db
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=\${POSTGRES_DB}
+      - DB_POSTGRESDB_DATABASE=\${POSTGRES_DB_N8N}
       - DB_POSTGRESDB_USER=\${POSTGRES_USER}
       - DB_POSTGRESDB_PASSWORD=\${POSTGRES_PASSWORD}
       - PLATFORM_API_URL=http://host.docker.internal:5050
@@ -99,7 +101,7 @@
 
 
   web:
-    image: node:20-alpine
+    image: node:20
     container_name: ${containerPrefix}_web
     working_dir: /app
     restart: unless-stopped

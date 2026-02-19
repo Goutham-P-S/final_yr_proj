@@ -175,7 +175,12 @@ export function createSandboxFolder(params: {
     path.join(repoRoot,"apps","platform-api","src" ,"docker", "n8n", "Dockerfile"),
     path.join(dockerDir, "Dockerfile")
   );
-
+  const postgresDir=path.join(sandboxPath,"docker","postgres")
+  fs.mkdirSync(postgresDir, { recursive: true });
+  fs.copyFileSync(
+      path.join(repoRoot,"apps","platform-api","src" ,"docker", "postgres","init.sql"),
+      path.join(postgresDir,"init.sql")
+    );
 
 
   fs.mkdirSync(sandboxPath, { recursive: true });

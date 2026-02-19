@@ -1,35 +1,39 @@
 import { llamaChat } from "../llamaClient";
-import { validateBackendPlan } from "./backendPlanValidator";
+import { normalizeBackendPlan } from "./normalizeBackendPlan";
 
-const MAX_RETRIES = 3;
+function extractJSON(text: string) {
+  const cleaned = text
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const match = cleaned.match(/\{[\s\S]*\}/);
+
+  if (!match) {
+    throw new Error("No valid JSON found in LLM output");
+  }
+
+  return JSON.parse(match[0]);
+}
 
 export async function planBackendArchitecture(
   requirement: string
 ) {
-  const system = `
+  console.log("🧠 Backend planning...");
+
+const system = `
 You are a senior backend architect.
 
-Design a PostgreSQL relational schema.
+Design business entities for a relational database.
 
 STRICT RULES:
-
-- Use ONLY Prisma types:
-  String, Int, Boolean, Float, DateTime, Json
-
-- Every entity MUST include:
-  id Int (isId: true)
-
-- Relations must follow this structure:
-  {
-    "field": "relationFieldName",
-    "target": "TargetModel",
-    "type": "one-to-one" | "one-to-many" | "many-to-one",
-    "foreignKey": "fieldNameIfApplicable",
-    "references": "TargetModel.id"
-  }
-
-- No explanations.
-- JSON only.
+- Only output JSON.
+- Do NOT include explanations.
+- Do NOT use markdown.
+- Do NOT include backticks.
+- Do NOT include id fields.
+- Do NOT include foreignKey fields.
+- Do NOT include Prisma syntax.
 
 Return format:
 
@@ -37,38 +41,33 @@ Return format:
   "entities": [
     {
       "name": "ModelName",
-      "fields": [],
-      "relations": []
+      "fields": ["field1", "field2"],
+      "relations": [
+        {
+          "target": "OtherModel",
+          "type": "one-to-one" | "one-to-many" | "many-to-one"
+        }
+      ]
     }
   ]
 }
 `;
+  const response = await llamaChat({
+    system,
+    user: requirement,
+    temperature: 0
+  });
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      console.log(`🧠 Backend planning attempt ${attempt}`);
+  const parsed = extractJSON(response);
 
-      const response = await llamaChat({
-        system,
-        user: requirement,
-        temperature: 0
-      });
+  const normalized = normalizeBackendPlan(parsed);
 
-      const parsed = JSON.parse(response);
+  console.log("✅ Backend plan normalized");
 
-      validateBackendPlan(parsed);
-
-      console.log("✅ Backend plan validated");
-      return parsed;
-
-    } catch (err: any) {
-      console.error("❌ Invalid plan:", err.message);
-
-      if (attempt === MAX_RETRIES) {
-        throw new Error("Backend planning failed");
-      }
-    }
-  }
-
-  throw new Error("Planner failure");
+  return normalized;
 }
+
+
+
+
+

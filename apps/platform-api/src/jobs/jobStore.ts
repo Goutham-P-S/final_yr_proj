@@ -4,8 +4,14 @@ export type JobStatus =
   | "creating-sandbox"
   | "generating-code"
   | "starting-containers"
+  | "waiting-for-n8n"
+  | "configuring-n8n"
+  | "generating-workflow"
+  | "importing-workflow"
   | "completed"
-  | "failed";
+  | "failed"
+  | "cancelled";
+
 
 export interface Job {
   id: string;
@@ -46,4 +52,11 @@ export function updateJob(
   }
 
   Object.assign(job, updates);
+}
+export function appendLog(id: string, message: string) {
+  const job = jobs.get(id);
+  if (!job) return;
+
+  const timestamp = new Date().toISOString();
+  job.logs.push(`[${timestamp}] ${message}`);
 }

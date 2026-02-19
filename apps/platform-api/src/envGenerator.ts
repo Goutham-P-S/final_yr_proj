@@ -45,6 +45,7 @@ export function writeSandboxEnv(params: {
   POSTGRES_USER=${startupDbUser}
   POSTGRES_PASSWORD=${startupDbPass}
   POSTGRES_DB=${startupDbName}
+  POSTGRES_DB_N8N=n8ndb
   BACKEND_PORT=4000
   BACKEND_INTERNAL_URL=http://backend:4000
 
